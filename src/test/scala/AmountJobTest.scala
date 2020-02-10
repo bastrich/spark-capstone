@@ -1,23 +1,13 @@
 import java.sql.Timestamp
 
-import com.bastrich.{AmountJob, StatisticsJob}
+import com.bastrich.AmountJob
 import com.bastrich.entities.input.{Amount, Position}
-import com.bastrich.entities.output.{AmountResult, StatisticsResult}
-import org.apache.spark.sql.SparkSession
-import org.scalatest._
-import Matchers._
-import org.apache.spark.SparkConf
+import com.bastrich.entities.output.AmountResult
+import org.scalatest.Matchers._
 
 import scala.collection.JavaConverters._
 
-class Test extends FunSpec {
-  val spark: SparkSession = {
-    SparkSession
-      .builder()
-      .master("local[*]")
-      .appName("spark test")
-      .getOrCreate()
-  }
+class AmountJobTest extends BaseSpec {
 
   import spark.implicits._
 
@@ -28,7 +18,7 @@ class Test extends FunSpec {
       Position(3, "w3", "p1", new Timestamp(333)),
       Position(777, "w1", "p1", new Timestamp(333)),
       Position(888, "w777", "p111", new Timestamp(444))
-    ).toDS()
+    ).toDS
 
   val amounts =
     List(
@@ -38,24 +28,14 @@ class Test extends FunSpec {
       Amount(888, BigDecimal(70), new Timestamp(888)),
       Amount(111, BigDecimal(80), new Timestamp(999)),
       Amount(1, BigDecimal(30), new Timestamp(456)),
-    ).toDS()
+    ).toDS
 
-  it("test") {
-    val amountsResult = AmountJob.calculate(positions, amounts, spark).cache()
-
-    amountsResult.collectAsList().asScala shouldEqual List(
+  it("test calculating amounts") {
+    AmountJob.calculate(positions, amounts, spark).collectAsList().asScala shouldEqual List(
       AmountResult(1, "w1", "p1", BigDecimal(30)),
       AmountResult(2, "w1", "p2", BigDecimal(50)),
       AmountResult(777, "w1", "p1", BigDecimal(60)),
       AmountResult(888, "w777", "p111", BigDecimal(70))
-    )
-
-    val statisticsResult = StatisticsJob.calculate(amountsResult, spark)
-
-    statisticsResult.collectAsList().asScala shouldEqual List(
-      StatisticsResult("w1", "p1", BigDecimal(60), BigDecimal(30), BigDecimal(45)),
-      StatisticsResult("w1", "p2", BigDecimal(50), BigDecimal(50), BigDecimal(50)),
-      StatisticsResult("w777", "p111", BigDecimal(70), BigDecimal(70), BigDecimal(70))
     )
   }
 }
